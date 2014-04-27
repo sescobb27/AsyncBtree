@@ -98,23 +98,49 @@ func assertTrue(assertion bool, t *testing.T, msg string) {
 	}
 }
 
-func TestTreeInsertion(t *testing.T) {
+func assertSignal(ch_signal chan struct{}, t *testing.T) {
+	_, done := <-ch_signal
+	if !done {
+		t.Error("Error: it should send a signal of empty struct")
+	}
+}
+
+func assertNoSignal(ch_signal chan struct{}, t *testing.T) {
+	_, done := <-ch_signal
+	if done {
+		t.Error("Error: it should no send a signal")
+	}
+}
+
+func TestInsertion(t *testing.T) {
 	tree := NewTree()
-	err := tree.Insert(newObjInt())
-	assertNoError(err, t)
-	err = tree.Insert(newObjInt())
-	assertNoError(err, t)
-	err = tree.Insert(newObjInt())
-	assertNoError(err, t)
-	err = tree.Insert(newObjInt())
-	assertNoError(err, t)
+	ch_signal := Insert(tree, newObjInt())
+	assertSignal(ch_signal, t)
+	ch_signal = Insert(tree, newObjInt())
+	assertSignal(ch_signal, t)
+	ch_signal = Insert(tree, newObjInt())
+	assertSignal(ch_signal, t)
+	ch_signal = Insert(tree, newObjInt())
+	assertSignal(ch_signal, t)
+}
+
+func TestNoInsertion(t *testing.T) {
+	tree := NewTree()
+	nums := []int{9, 7, 2, 4, 6, 10, 1, 5, 8, 3}
+	var ch_signal chan struct{}
+	for i := 0; i < len(nums); i++ {
+		ch_signal = Insert(tree, ObjInt{nums[i]})
+		assertSignal(ch_signal, t)
+	}
+	ch_signal = Insert(tree, ObjInt{9})
+	assertNoSignal(ch_signal, t)
 }
 
 func TestInOrder(t *testing.T) {
 	tree := NewTree()
 	nums := []int{9, 7, 2, 4, 6, 10, 1, 5, 8, 3}
 	for i := 0; i < len(nums); i++ {
-		tree.Insert(ObjInt{nums[i]})
+		<-Insert(tree, ObjInt{nums[i]})
 	}
 	ch_result := make(chan Obj, 10)
 	go InOrder(tree, ch_result)
@@ -134,7 +160,7 @@ func TestPostOrder(t *testing.T) {
 	tree := NewTree()
 	nums := []int{9, 7, 2, 4, 6, 10, 1, 5, 8, 3}
 	for i := 0; i < len(nums); i++ {
-		tree.Insert(ObjInt{nums[i]})
+		<-Insert(tree, ObjInt{nums[i]})
 	}
 	ch_result := make(chan Obj, 10)
 	answer := []int{1, 3, 5, 6, 4, 2, 8, 7, 10, 9}
@@ -145,7 +171,7 @@ func TestPostOrder(t *testing.T) {
 	}
 	for i, obj := range result {
 		assertTrue(obj.Compare(ObjInt{answer[i]}) == 0, t,
-			"Previous obj should be smaller than current object")
+			"Error: Objects should be equals")
 	}
 }
 
@@ -153,7 +179,7 @@ func TestPreOrder(t *testing.T) {
 	tree := NewTree()
 	nums := []int{9, 7, 2, 4, 6, 10, 1, 5, 8, 3}
 	for i := 0; i < len(nums); i++ {
-		tree.Insert(ObjInt{nums[i]})
+		<-Insert(tree, ObjInt{nums[i]})
 	}
 	ch_result := make(chan Obj, 10)
 	answer := []int{9, 7, 2, 1, 4, 3, 6, 5, 8, 10}
@@ -164,6 +190,6 @@ func TestPreOrder(t *testing.T) {
 	}
 	for i, obj := range result {
 		assertTrue(obj.Compare(ObjInt{answer[i]}) == 0, t,
-			"Previous obj should be smaller than current object")
+			"Error: Objects should be equals")
 	}
 }

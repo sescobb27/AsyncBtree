@@ -2,7 +2,6 @@ package binarytree
 
 import (
 	"errors"
-	"sync"
 )
 
 type Obj interface {
@@ -10,7 +9,6 @@ type Obj interface {
 }
 
 type Tree struct {
-	lock        sync.RWMutex
 	Item        Obj
 	Rigth, Left *Tree
 	height      int16
@@ -59,42 +57,50 @@ func PreOrder(t *Tree, chTree chan Obj) {
 	close(chTree)
 }
 
-func (t *Tree) Insert(item Obj) error {
+func insert(t *Tree, item Obj, done chan struct{}) {
 	if t.Item == nil {
-		t.lock.Lock()
-		defer t.lock.Unlock()
 		t.Item = item
-		return nil
+		var signal struct{}
+		done <- signal
+		return
 	}
 	if t.Item.Compare(item) == 1 { //Left
 		if t.Left == nil {
-			t.lock.Lock()
-			defer t.lock.Unlock()
 			t.Left = &Tree{Item: item,
 				Rigth: nil,
 				Left:  nil,
 			}
-			return nil
+			var signal struct{}
+			done <- signal
 		} else {
-			return t.Left.Insert(item)
+			insert(t.Left, item, done)
+			return
 		}
 	} else if t.Item.Compare(item) == -1 { //Rigth
 		if t.Rigth == nil {
-			t.lock.Lock()
-			defer t.lock.Unlock()
 			t.Rigth = &Tree{Item: item,
 				Rigth: nil,
 				Left:  nil,
 			}
-			return nil
+			var signal struct{}
+			done <- signal
 		} else {
-			return t.Rigth.Insert(item)
+			insert(t.Rigth, item, done)
+			return
 		}
 	}
-	return errors.New("Item already exist")
+	close(done)
+	return //errors.New("Item already exist")
+}
+
+func Insert(t *Tree, item Obj) chan struct{} {
+	done := make(chan struct{}, 1)
+	go insert(t, item, done)
+	return done
 }
 
 func (t *Tree) Delete(item Obj) error {
+	// TO-DO
 	return nil
 }
 
