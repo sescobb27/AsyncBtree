@@ -1,9 +1,5 @@
 package binarytree
 
-import (
-	"errors"
-)
-
 type Obj interface {
 	Compare(node Obj) int
 }
@@ -104,18 +100,22 @@ func (t *Tree) Delete(item Obj) error {
 	return nil
 }
 
-func Find(t *Tree, item Obj, ch_result chan Tree) error {
+func find(t *Tree, item Obj, ch_result chan Tree) {
 	if t != nil {
 		if t.Item.Compare(item) == 0 {
 			ch_result <- *t
-			close(ch_result)
-			return nil
+			return
 		} else if t.Item.Compare(item) == -1 { //Rigth
-			return Find(t.Rigth, item, ch_result)
+			Find(t.Rigth, item, ch_result)
+			return
 		} else { //Left
-			return Find(t.Left, item, ch_result)
+			Find(t.Left, item, ch_result)
+			return
 		}
 	}
-	close(ch_result)
-	return errors.New("Item not Found")
+	ch_result <- *NewTree()
+}
+
+func Find(t *Tree, item Obj, ch_result chan Tree) {
+	find(t, item, ch_result)
 }

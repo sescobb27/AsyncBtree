@@ -193,3 +193,36 @@ func TestPreOrder(t *testing.T) {
 			"Error: Objects should be equals")
 	}
 }
+
+func TestFind(t *testing.T) {
+	tree := NewTree()
+	nums := []int{9, 7, 2, 4, 6, 10, 1, 5, 8, 3}
+	for i := 0; i < len(nums); i++ {
+		<-Insert(tree, ObjInt{nums[i]})
+	}
+	ch_result := make(chan Tree, 10)
+	defer close(ch_result)
+	for i := 0; i < len(nums); i++ {
+		go Find(tree, ObjInt{nums[i]}, ch_result)
+		obj := <-ch_result
+		assertTrue(obj.Item.Compare(ObjInt{nums[i]}) == 0, t,
+			"Error: I should find the requested object")
+	}
+}
+
+func TestNotFound(t *testing.T) {
+	tree := NewTree()
+	nums := []int{9, 7, 2, 4, 6, 10, 1, 5, 8, 3}
+	for i := 0; i < len(nums); i++ {
+		<-Insert(tree, ObjInt{nums[i]})
+	}
+	ch_result := make(chan Tree, 10)
+	defer close(ch_result)
+	not_in_tree := []int{90, 70, 20, 40, 60, 100, 110, 50, 80, 30}
+	for i := 0; i < len(not_in_tree); i++ {
+		go Find(tree, ObjInt{not_in_tree[i]}, ch_result)
+		obj := <-ch_result
+		assertTrue(obj.Item == nil, t,
+			"Error: I should not find the requested object")
+	}
+}
